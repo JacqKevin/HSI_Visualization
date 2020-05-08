@@ -25,4 +25,4 @@ The mandatory data to use this toolbox are a hyperspectral image (M), the corres
 <center><img src="MNF.jpg" width="900"/></center>
 
 # Wavelength correlations
-<center><img src="Wlcorr.jpg" width="900"/></center>
+<center><img src="Wlcorr.jpg" width="600"/></center>
