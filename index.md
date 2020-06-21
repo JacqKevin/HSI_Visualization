@@ -1,9 +1,3 @@
----
-layout: default
-title: Hyperspectral image visualization
-description: Toolbox to visualize an hyperspectral image on the spatial and/or spectral dimension.
----
-
 # Toolbox
 The mandatory data to use this toolbox are a hyperspectral image (M), the corresponding RGB image (RGB), depth (dm), and wavelength (wl). Then, the toolbox will estimate continuum, first derivative of the HSI.
 
