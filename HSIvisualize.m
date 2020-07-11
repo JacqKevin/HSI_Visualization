@@ -1,14 +1,51 @@
 function HSIvisualize(M,RGB,d,wl)
 % Function to visualize the HSI cube based on :
-        % * Raw, Continuum removed, Continuum and First derivative  
-        %       spectral profiles along the sample.
-        % * Minimum Noise Fraction compression to create a composite image
-        % * Wavelength correlations.
+%      * Q7/4 vs L* diagram
+%      * Abberant pixels
+%      * Median and standard deviation spectra
+%      * Raw, Continuum removed, Continuum and First derivative  
+%            spectral profiles along the sample.
+%      * Minimum Noise Fraction compression to create a composite image
+%      * Wavelength correlations.
+% INPUT:
+%           M: Hyperspectral datacube (n*m*p)
+%           RGB: Associated RGB image (n*m*3)
+%           d: Associated depth (1*m)
+%           wl: Associated wavelengths (1*p)
         
 m=median(M(:));
 if m>1000
     M=M/10000;
 end
+
+% RGB enhancement
+RGB=RGB*(0.5/mean(RGB(:)));
+
+% Check unique depth
+[~,ia,~] = unique(d);
+
+%% Q700/400 vs L*
+
+if median(wl)<1000
+    [RGB,~, ~]=Spec2rgb2Q75L(M,d,wl);
+end
+
+%% Aberrant pixels
+
+AbberantPixels(M,RGB,d,wl,1);
+
+%% Median and standard deviation spectra
+
+figure
+yyaxis left
+plot(wl,median(squeeze(M(round(size(M,1)),:,:))),'linewidth',2)
+ylabel('Median spectrum')
+yyaxis right
+plot(wl,std(squeeze(M(round(size(M,1)),:,:))),'linewidth',2)
+ylabel('Standard deviation spectrum')
+title('Median and standard deviation spectra')
+grid on
+set(gca,'fontsize',14)
 
 %% Raw spectra
 
@@ -27,6 +64,22 @@ ylabel('Depth (cm)')
 xlabel('Wavelength (nm)')
 linkaxes(ha,'y')
 set(gca,'fontsize',14)
+
+figure;
+hb(1)=subplot(131);
+imagesc(d(1:size(RGB,1)),d(ia),imrotate(RGB(:,ia,:),-90))
+xlabel('Width (cm)')
+ylabel('Depth (cm)')
+set(gca,'fontsize',14)
+hb(2)=subplot(1,3,2:3);
+surf(wl,d(ia),squeeze(median(M(:,ia,:),1)),'EdgeColor','none')
+title('Raw spectra')
+colormap(flipud(jet))
+colorbar
+ylabel('Depth (cm)')
+xlabel('Wavelength (nm)')
+linkaxes(hb,'y')
+set(gca,'fontsize',14,'Ydir','reverse')
 
 %% Continuum removed
 
@@ -65,6 +118,22 @@ xlabel('Wavelength (nm)')
 linkaxes(ha,'y')
 set(gca,'fontsize',14)
 
+figure;
+hb(1)=subplot(131);
+imagesc(d(1:size(RGB,1)),d(ia),imrotate(RGB(:,ia,:),-90))
+xlabel('Width (cm)')
+ylabel('Depth (cm)')
+set(gca,'fontsize',14)
+hb(2)=subplot(1,3,2:3);
+surf(wl,d(ia),Scr(ia,:),'EdgeColor','none')
+title('Continuum removed spectra')
+colormap(flipud(jet))
+colorbar
+ylabel('Depth (cm)')
+xlabel('Wavelength (nm)')
+linkaxes(hb,'y')
+set(gca,'fontsize',14,'Ydir','reverse')
+
 %% Continuum 
 
 figure;
@@ -83,6 +152,22 @@ ylabel('Depth (cm)')
 xlabel('Wavelength (nm)')
 linkaxes(ha,'y')
 set(gca,'fontsize',14)
+
+figure;
+hb(1)=subplot(131);
+imagesc(d(1:size(RGB,1)),d(ia),imrotate(RGB(:,ia,:),-90))
+xlabel('Width (cm)')
+ylabel('Depth (cm)')
+set(gca,'fontsize',14)
+hb(2)=subplot(1,3,2:3);
+surf(wl,d(ia),cr(ia,:),'EdgeColor','none')
+title('Continuum spectra')
+colormap(flipud(jet))
+colorbar
+ylabel('Depth (cm)')
+xlabel('Wavelength (nm)')
+linkaxes(hb,'y')
+set(gca,'fontsize',14,'Ydir','reverse')
 
 %% FDS
 
@@ -103,6 +188,22 @@ ylabel('Depth (cm)')
 xlabel('Wavelength (nm)')
 linkaxes(ha,'y')
 set(gca,'fontsize',14)
+
+figure;
+hb(1)=subplot(131);
+imagesc(d(1:size(RGB,1)),d(ia),imrotate(RGB(:,ia,:),-90))
+xlabel('Width (cm)')
+ylabel('Depth (cm)')
+set(gca,'fontsize',14)
+hb(2)=subplot(1,3,2:3);
+surf(wl,d(ia),Sfds(ia,:),'EdgeColor','none')
+title('First derivative spectra')
+colormap(flipud(jet))
+colorbar
+ylabel('Depth (cm)')
+xlabel('Wavelength (nm)')
+linkaxes(hb,'y')
+set(gca,'fontsize',14,'Ydir','reverse')
 
 %% MNF 
 
@@ -168,4 +269,59 @@ ylabel('Wavelength (nm)')
 xlabel('Wavelength (nm)')
 set(gca,'fontsize',14)
 
+%% Clustering
+
+% S
+evaS = evalclusters(squeeze(median(M,1)),'kmeans','CalinskiHarabasz','KList',[1:10]);
+% Scr
+evaScr = evalclusters(Scr,'kmeans','CalinskiHarabasz','KList',[1:10]);
+% Cr
+evaCr = evalclusters(cr,'kmeans','CalinskiHarabasz','KList',[1:10]);
+% Sfds
+evaSfds = evalclusters(Sfds,'kmeans','CalinskiHarabasz','KList',[1:10]);
+
+Km=[evaS.OptimalY evaScr.OptimalY evaCr.OptimalY evaSfds.OptimalY];
+Kmxlab={strcat('S (',num2str(evaS.OptimalK),')'),...
+    strcat('Scr (',num2str(evaScr.OptimalK),')'),...
+    strcat('Cr (',num2str(evaCr.OptimalK),')'),...
+    strcat('Sfds (',num2str(evaSfds.OptimalK),')')};
+
+% S
+evaS = evalclusters(squeeze(median(M,1)),'linkage','CalinskiHarabasz','KList',[1:10]);
+% Scr
+evaScr = evalclusters(Scr,'linkage','CalinskiHarabasz','KList',[1:10]);
+% Cr
+evaCr = evalclusters(cr,'linkage','CalinskiHarabasz','KList',[1:10]);
+% Sfds
+evaSfds = evalclusters(Sfds,'linkage','CalinskiHarabasz','KList',[1:10]);
+
+HACm=[evaS.OptimalY evaScr.OptimalY evaCr.OptimalY evaSfds.OptimalY];
+HACmxlab={strcat('S (',num2str(evaS.OptimalK),')'),...
+    strcat('Scr (',num2str(evaScr.OptimalK),')'),...
+    strcat('Cr (',num2str(evaCr.OptimalK),')'),...
+    strcat('Sfds (',num2str(evaSfds.OptimalK),')')};
+
+figure
+ha(1)=subplot(131);
+imagesc(d(1:size(RGB,1)),d,imrotate(RGB,-90))
+xlabel('Width (cm)')
+ylabel('Depth (cm)')
+set(gca,'fontsize',14)
+ha(2)=subplot(132);
+imagesc(1:4,d,Km)
+colormap(jet)
+colorbar
+xlabel('Width (cm)')
+ylabel('Data cluster')
+title('Kmeans')
+set(gca,'fontsize',14,'xtick',1:4,'xticklabel',Kmxlab)
+ha(3)=subplot(133);
+imagesc(1:4,d,HACm)
+colormap(jet)
+colorbar
+xlabel('Width (cm)')
+ylabel('Data cluster')
+title('Agglomerative Hierarchical Tree')
+set(gca,'fontsize',14,'xtick',1:4,'xticklabel',HACmxlab)
+linkaxes(ha,'y')
 end
