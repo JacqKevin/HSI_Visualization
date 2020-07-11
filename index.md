@@ -1,7 +1,11 @@
 # Toolbox
 The mandatory data to use this toolbox are a hyperspectral image (M), the corresponding RGB image (RGB), depth (dm), and wavelength (wl). Then, the toolbox will estimate continuum, first derivative of the HSI.
 
-## Visualization
+## Q7/4 vs L* diagram
+
+## Abberant pixels
+
+## Median and standard deviation spectra
 
 ## Median raw spectra
 <center><img src="Raw.jpg" width="900"/></center>
